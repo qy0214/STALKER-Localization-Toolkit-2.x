@@ -1,5 +1,45 @@
 # STALKER 汉化工具集 2.0
 
+> **本 fork（`qy0214`）相对上游 `ALittleHuman` 有一处改动**：插件注册表 —— 让全新用户
+> 也能在插件管理界面里一键安装线上插件。分支 [`feat/plugin-registry-install`](https://github.com/qy0214/STALKER-Localization-Toolkit-2.x/tree/feat/plugin-registry-install)，
+> PR：<https://github.com/ALittleHuman/STALKER-Localization-Toolkit-2.x/pull/1>
+
+## 本 fork 的改动：插件注册表
+
+### 改动了什么
+
+| 文件 | 改动 |
+|---|---|
+| `include/xrkit/core/plugin_registry.h` | **新增**。注册表条目结构（`id` / `version` / `package` / `sha256` / `entry` / `target`）+ 两个纯函数：`registry_missing()`（注册表 ∖ 本地已装）、`registry_pick()`（按选中 id 取条目）。不依赖 Qt —— core 层不许依赖 Qt。 |
+| `tools/plugin_manager/main.cpp` | 新增 `sync_registry_rows()`：拉线上注册表，把**本地还没装的条目**补进表格，状态列标「可安装（线上注册表）」。接入三条路径：**启动时自动同步**、点「刷新」、点「检查插件更新」（并弹窗列出注册表条目）。注册表地址提为 `kDefaultRegistryUrl`，支持环境变量 `XRKIT_PLUGIN_REGISTRY_URL` 覆盖（默认仍是原地址）。新增 `--registry-rows <url>` 无头自检口。**安装逻辑一行未改**。 |
+| `tests/plugin_registry_test.cpp` | **新增**。纯 C++ 回归测试（不依赖 Qt，可单独编译）。 |
+| `docs/2.0.0-插件注册表与全新用户一键安装.md` | **新增**。说明文档。 |
+
+### 作用是什么
+
+**改动前**：插件管理器的表格只扫本地 `plugins/` 目录，「安装所选更新」也只认表格里已经存在的行
+⇒ 线上注册表里有的、本地没装的插件，**界面里既看不到也装不上**（这条链路只能给已装插件做更新）。
+
+**改动后**：打开插件管理器即自动同步（或点「刷新」/「检查插件更新」），线上注册表里尚未安装的插件
+以「可安装（线上注册表）」出现在表格中；选中 → 「安装所选更新」→ 下载 → sha256 校验 → 解压 →
+按 `entry` 定位目录 → 整目录替换 `plugins/<target>/`。未安装过也能装（`update_prepare` 对不存在的
+目标目录建空备份再替换，同样走事务、失败可回滚）。
+
+**结果**：客户只装平台，也能在插件管理界面里找到并一键安装线上插件；插件作者把发布包登记进注册表
+就能触达用户，无需预装、无需手工解压。
+
+### 怎么用
+
+```text
+git fetch https://github.com/qy0214/STALKER-Localization-Toolkit-2.x.git feat/plugin-registry-install
+git cherry-pick FETCH_HEAD          # 或 git merge FETCH_HEAD
+scripts\build.ps1 -Preset msvc-shell
+```
+
+补丁文件与完整说明：<https://github.com/qy0214/stalker-localization-toolkit-ai-translate-2x/tree/main/docs/patches>
+
+---
+
 面向 X-Ray 引擎（SoC / Clear Sky / CoP / IX-Ray）的资源查看、解包、文本提取与汉化包生成工具。
 
 当前源码版本：`2.0.0 BETA.244`。正式发布包以 `dist\2.0.0\BETA\<build>` 为准。
